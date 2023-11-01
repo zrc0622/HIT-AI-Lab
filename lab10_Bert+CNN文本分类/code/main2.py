@@ -97,14 +97,46 @@ def test_textcnn_with_bert_model(net, test_loader):
     correct = 0
     total = 0
     with torch.no_grad():
-        for i, (data, label) in enumerate(test_loader):
-            outputs = net(data[0], attention_mask=data[1])
+        for input_ids, attention_mask, target in test_loader:
+            # input_ids 是输入的 BERT token IDs
+            # attention_mask 是注意力掩码
+            # target 是目标标签
+            input_ids=input_ids.to('cuda')
+            attention_mask=attention_mask.to('cuda')
+            target=target.to('cuda')
+            outputs = net(input_ids.squeeze(), attention_mask.squeeze())
+            
             _, predicted = torch.max(outputs.data, 1)
-            total += label.size(0)
-            correct += (predicted == label).sum().item()
+            total += target.size(0)
+            correct += (predicted == target).sum().item()
+            if total>5000:
+                break    
     accuracy = 100 * correct / total
-    print(f'模型在测试集上的准确率: {accuracy:.2f}%')
     return accuracy
+
+def calculate_train_accuracy(net, train_loader):
+    net.eval()  # 设置模型为评估模式
+
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for input_ids, attention_mask, target in train_loader:
+            # 将数据传递到模型中进行预测
+            input_ids=input_ids.to('cuda')
+            attention_mask=attention_mask.to('cuda')
+            target=target.to('cuda')
+            outputs = net(input_ids.squeeze(), attention_mask.squeeze())
+            _, predicted = torch.max(outputs.data, 1)
+
+            total += target.size(0)
+            correct += (predicted == target).sum().item()
+            if total>5000:
+                break  
+
+    train_accuracy = 100 * correct / total
+    return train_accuracy
+
 
 # 加载停用词
 def load_stopwords(stopwords_dir):
@@ -170,6 +202,7 @@ if __name__ == "__main__":
     train_dataset = MyDataset(train_set, train_label, sentence_max_size, bert_model, tokenizer, stopwords) # 包含词向量+标签
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) # 创建训练数据加载器
 
+
     # 获取测试数据
     test_set = get_file_list(test_dir)
     test_label = get_label_list(test_set)
@@ -186,5 +219,8 @@ if __name__ == "__main__":
     train_textcnn_with_bert_model(textcnn_with_bert, train_dataloader, epoch, lr)
 
     # 测试TextCNNWithBert模型
+    # 在训练完成后调用这个函数来计算训练集的准确率
+    train_accuracy = calculate_train_accuracy(textcnn_with_bert, train_dataloader)
+    print(f'模型在训练集上的准确率: {train_accuracy:.2f}%')
     test_accuracy = test_textcnn_with_bert_model(textcnn_with_bert, test_dataloader)
     print(f'模型在测试集上的准确率: {test_accuracy:.2f}%')

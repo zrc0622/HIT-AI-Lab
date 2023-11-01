@@ -3,4 +3,5 @@
 2. 执行以下命令
 ```
 bash run_scripts\zeroshot_eval.sh 0 E:\Data flowers ViT-B-16 RoBERTa-wwm-ext-base-chinese E:\Data\pretrained_weights\clip_cn_vit-b-16_finetune_cifar-100\clip_cn_vit-b-16_finetune_cifar-100.pt
-```        
+```
+
